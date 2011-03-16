@@ -8,7 +8,7 @@ require "tddium_client/version"
 
 Gem::Specification.new do |s|
   s.name        = "tddium_client"
-  s.version     = TddiumClient::VERSION
+  s.version     = TddiumClientVersion::VERSION
   s.platform    = Gem::Platform::RUBY
   s.authors     = ["Jay Moorthi"]
   s.email       = ["info@tddium.com"]
