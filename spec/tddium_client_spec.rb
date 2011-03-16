@@ -1,4 +1,9 @@
+=begin
+Copyright (c) 2011 Solano Labs All Rights Reserved
+=end
+
 require "spec_helper"
+
 describe TddiumClient do
   include FakeFS::SpecHelpers
   include TddiumSpecHelpers
@@ -15,6 +20,10 @@ describe TddiumClient do
   def stub_http_response(method, path, options = {})
     uri = api_uri(path)
     FakeWeb.register_uri(method, uri, register_uri_options(options))
+  end
+
+  def parse_request_params
+    Rack::Utils.parse_nested_query(FakeWeb.last_request.body)
   end
 
   let(:tddium_client) { TddiumClient.new }
@@ -42,12 +51,26 @@ describe TddiumClient do
         tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE)
         FakeWeb.last_request.method.downcase.to_sym.should == EXAMPLE_HTTP_METHOD
       end
-    end
 
-    context "('#{EXAMPLE_HTTP_METHOD}', '#{EXAMPLE_TDDIUM_RESOURCE}')" do
       it "should make a request to the correct resource" do
         tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE)
         FakeWeb.last_request.path.should =~ /#{EXAMPLE_TDDIUM_RESOURCE}$/
+      end
+    end
+
+    context "raises an error" do
+      before do
+        HTTParty.stub(EXAMPLE_HTTP_METHOD).and_raise(Timeout::Error)
+      end
+
+      it "should retry 5 times by default to contact the API" do
+        HTTParty.should_receive(EXAMPLE_HTTP_METHOD).exactly(6).times
+        expect { tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE) }.to raise_error(Timeout::Error)
+      end
+
+      it "should retry as many times as we want to contact the API" do
+        HTTParty.should_receive(EXAMPLE_HTTP_METHOD).exactly(3).times
+        expect { tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE, {}, nil, 2) }.to raise_error(Timeout::Error)
       end
     end
 
@@ -71,7 +94,7 @@ describe TddiumClient do
         parse_request_params.should include(EXAMPLE_PARAMS)
       end
     end
-    
+
     context "('#{EXAMPLE_HTTP_METHOD}', '#{EXAMPLE_TDDIUM_RESOURCE}') # without params" do
       it "should not include any request params" do
         tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE)
@@ -80,18 +103,25 @@ describe TddiumClient do
     end
 
     context "results in a successful response" do
+      let(:dummy_block) { Proc.new { |response| @parsed_http_response = response } }
       before do
         stub_http_response(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE, :response => fixture_path("post_suites_201.json"))
-        @block_is_called = false
-        @dummy_block = Proc.new { @block_is_called = true }
-      end
-      it "should yield to the given block" do
-        tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE, {}, nil, &@dummy_block)
-        @block_is_called.should == true
       end
 
-      it "should return nil" do
-        tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE, {}, nil, &@dummy_block).should be_nil
+      it "should try to contact the api only once" do
+        HTTParty.should_receive(EXAMPLE_HTTP_METHOD).exactly(1).times.and_return(mock(HTTParty).as_null_object)
+        tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE, {}, nil, &dummy_block)
+      end
+
+      it "should parse the JSON response" do
+        tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE, {}, nil, &dummy_block)
+        @parsed_http_response.should be_a(Hash)
+        @parsed_http_response["status"].should == 0
+        @parsed_http_response["suite"]["id"].should == 19
+      end
+
+      it "should return a tuple with element[0]==status and element[1]==nil" do
+        tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE, {}, nil, &dummy_block).should == [0, nil]
       end
     end
 

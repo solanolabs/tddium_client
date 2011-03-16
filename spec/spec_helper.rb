@@ -1,3 +1,7 @@
+=begin
+Copyright (c) 2011 Solano Labs All Rights Reserved
+=end
+
 require "tddium_client"
 require "fakeweb"
 require "rack/test"

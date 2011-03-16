@@ -1,3 +1,7 @@
+=begin
+Copyright (c) 2011 Solano Labs All Rights Reserved
+=end
+
 # -*- encoding: utf-8 -*-
 $:.push File.expand_path("../lib", __FILE__)
 require "tddium_client/version"
@@ -26,5 +30,4 @@ Gem::Specification.new do |s|
   s.add_development_dependency("fakeweb")
   s.add_development_dependency("fakefs")
   s.add_development_dependency("rack-test")
-  
 end

@@ -1,3 +1,7 @@
+=begin
+Copyright (c) 2011 Solano Labs All Rights Reserved
+=end
+
 require 'httparty'
 require 'json'
 class TddiumClient
@@ -10,9 +14,23 @@ class TddiumClient
     self.environment = env
   end
 
-  def call_api(method, api_path, params = {}, api_key = nil, &block)
+  def call_api(method, api_path, params = {}, api_key = nil, retries = 5, &block)
     headers = { API_KEY_HEADER => api_key } if api_key
-    http = HTTParty.send(method, tddium_uri(api_path), :body => params, :headers => headers)
+
+    done = false
+    tries = 0
+    while (retries < 0 || tries <= retries) && !done
+      begin
+        http = HTTParty.send(method, tddium_uri(api_path), :body => params, :headers => headers)
+        done = true
+      rescue Timeout::Error
+      ensure
+        tries += 1
+      end
+    end
+
+    raise Timeout::Error if tries > retries
+
     response = JSON.parse(http.body) rescue {}
 
     if http.success?
@@ -25,7 +43,7 @@ class TddiumClient
       message = API_ERROR_TEXT + http.response.header.msg.to_s
       message << " #{response["explanation"]}" if response["status"].to_i > 0
     end
-    message ? [response["status"] || http.code, message] : nil
+    [response["status"] || http.code, message]
   end
 
   private

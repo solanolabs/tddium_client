@@ -1,3 +1,7 @@
+=begin
+Copyright (c) 2011 Solano Labs All Rights Reserved
+=end
+
 require 'httparty'
 require 'fakeweb'
 
@@ -6,12 +10,6 @@ FakeWeb.allow_net_connect = false
 module TddiumSpecHelpers
 
   private
-
-  def get_http_response(method, path, options)
-    uri = api_uri(path)
-    FakeWeb.register_uri(method, uri, register_uri_options(options))
-    HTTParty.send(method, uri)
-  end
 
   def register_uri_options(options = {})
     if options.is_a?(Array)
@@ -30,10 +28,6 @@ module TddiumSpecHelpers
       end
       options_for_fake_web
     end
-  end
-
-  def parse_request_params
-    Rack::Utils.parse_nested_query(FakeWeb.last_request.body)
   end
 
   def create_file(path, content = "blah")
