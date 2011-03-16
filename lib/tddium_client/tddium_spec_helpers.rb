@@ -2,10 +2,7 @@
 Copyright (c) 2011 Solano Labs All Rights Reserved
 =end
 
-require 'httparty'
-require 'fakeweb'
-
-FakeWeb.allow_net_connect = false
+require 'fakefs'
 
 module TddiumSpecHelpers
 
@@ -48,7 +45,6 @@ module TddiumSpecHelpers
   def tddium_client_config(raw = false, environment = "test")
    unless @tddium_config
      FakeFS.deactivate!
-
      @tddium_config = File.read(File.join(File.dirname(__FILE__), "..", "..", "config", "environment.yml"))
      FakeFS.activate!
    end
