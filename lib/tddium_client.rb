@@ -2,8 +2,10 @@
 Copyright (c) 2011 Solano Labs All Rights Reserved
 =end
 
+require 'rubygems'
 require 'httparty'
 require 'json'
+
 class TddiumClient
   API_KEY_HEADER = "X-tddium-api-key"
   API_ERROR_TEXT = "An error occured: "
