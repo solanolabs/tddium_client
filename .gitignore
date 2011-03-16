@@ -3,3 +3,5 @@ pkg/*
 .bundle
 nbproject
 .DS_Store
+*.swp
+Gemfile.lock

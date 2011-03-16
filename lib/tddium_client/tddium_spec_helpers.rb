@@ -42,12 +42,20 @@ module TddiumSpecHelpers
     URI.join(uri.to_s, "#{tddium_client_config["api"]["version"]}/#{path}").to_s
   end
 
+  def config_path
+    File.join(File.dirname(__FILE__), "..", "..", "config", "environment.yml")
+  end
+
   def tddium_client_config(raw = false, environment = "test")
    unless @tddium_config
      FakeFS.deactivate!
-     @tddium_config = File.read(File.join(File.dirname(__FILE__), "..", "..", "config", "environment.yml"))
+     @tddium_config = File.read(config_path)
      FakeFS.activate!
    end
    raw ? @tddium_config : YAML.load(@tddium_config)[environment]
+  end
+
+  def stub_tddium_client_config
+    create_file(config_path, tddium_client_config(true))
   end
 end

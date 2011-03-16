@@ -13,10 +13,6 @@ describe TddiumClient do
   EXAMPLE_PARAMS = {"key" => "value"}
   EXAMPLE_API_KEY = "afb12412bdafe124124asfasfabebafeabwbawf1312342erbfasbb"
 
-  def stub_tddium_client_config
-    create_file(File.join("config", "environment.yml"), tddium_client_config(true))
-  end
-
   def stub_http_response(method, path, options = {})
     uri = api_uri(path)
     FakeWeb.register_uri(method, uri, register_uri_options(options))
