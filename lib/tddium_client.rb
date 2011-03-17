@@ -63,4 +63,3 @@ class TddiumClient
    @tddium_config
   end
 end
-
