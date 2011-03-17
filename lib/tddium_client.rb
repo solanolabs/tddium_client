@@ -36,11 +36,7 @@ class TddiumClient
     response = JSON.parse(http.body) rescue {}
 
     if http.success?
-      if response["status"] == 0
-        yield response
-      else
-        message = API_ERROR_TEXT + response["explanation"].to_s
-      end
+      (response["status"] == 0 && block_given?) ? yield(response) : message = API_ERROR_TEXT + response["explanation"].to_s
     else
       message = API_ERROR_TEXT + http.response.header.msg.to_s
       message << " #{response["explanation"]}" if response["status"].to_i > 0

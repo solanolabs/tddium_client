@@ -97,27 +97,36 @@ describe TddiumClient do
         parse_request_params.should == {}
       end
     end
-
+    
     context "results in a successful response" do
-      let(:dummy_block) { Proc.new { |response| @parsed_http_response = response } }
       before do
         stub_http_response(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE, :response => fixture_path("post_suites_201.json"))
       end
 
-      it "should try to contact the api only once" do
-        HTTParty.should_receive(EXAMPLE_HTTP_METHOD).exactly(1).times.and_return(mock(HTTParty).as_null_object)
-        tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE, {}, nil, &dummy_block)
+      context "called with a block" do
+        let(:dummy_block) { Proc.new { |response| @parsed_http_response = response } }
+
+        it "should try to contact the api only once" do
+          HTTParty.should_receive(EXAMPLE_HTTP_METHOD).exactly(1).times.and_return(mock(HTTParty).as_null_object)
+          tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE, {}, nil, &dummy_block)
+        end
+
+        it "should parse the JSON response" do
+          tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE, {}, nil, &dummy_block)
+          @parsed_http_response.should be_a(Hash)
+          @parsed_http_response["status"].should == 0
+          @parsed_http_response["suite"]["id"].should == 19
+        end
+
+        it "should return a triple with element[0]==json_status, element[1]==http_status, element[2]==error_message" do
+          tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE, {}, nil, &dummy_block).should == [0, 201, nil]
+        end
       end
 
-      it "should parse the JSON response" do
-        tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE, {}, nil, &dummy_block)
-        @parsed_http_response.should be_a(Hash)
-        @parsed_http_response["status"].should == 0
-        @parsed_http_response["suite"]["id"].should == 19
-      end
-
-      it "should return a triple with element[0]==json_status, element[1]==http_status, element[2]==error_message" do
-        tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE, {}, nil, &dummy_block).should == [0, 201, nil]
+      context "called without a block" do
+        it "should not yield" do
+          tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE)
+        end
       end
     end
 
