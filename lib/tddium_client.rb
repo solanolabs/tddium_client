@@ -45,7 +45,7 @@ class TddiumClient
       message = API_ERROR_TEXT + http.response.header.msg.to_s
       message << " #{response["explanation"]}" if response["status"].to_i > 0
     end
-    [response["status"] || http.code, message]
+    [response["status"], http.code, message]
   end
 
   private

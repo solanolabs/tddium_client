@@ -116,37 +116,47 @@ describe TddiumClient do
         @parsed_http_response["suite"]["id"].should == 19
       end
 
-      it "should return a tuple with element[0]==status and element[1]==nil" do
-        tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE, {}, nil, &dummy_block).should == [0, nil]
+      it "should return a triple with element[0]==json_status, element[1]==http_status, element[2]==error_message" do
+        tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE, {}, nil, &dummy_block).should == [0, 201, nil]
       end
     end
 
-    context "results in an unsuccessful response" do
+    context "results for an unsuccessful response" do
       before { stub_http_response(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE, :status => ["404", "Not Found"]) }
 
       shared_examples_for "returning that an error occured" do
-        it "should return that an error occured in the second element" do
-          tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE)[1].should =~ /^#{TddiumClient::API_ERROR_TEXT}/
+        it "should return that an error occured in the third element" do
+          tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE)[2].should =~ /^#{TddiumClient::API_ERROR_TEXT}/
         end
       end
 
       shared_examples_for("returning the API error") do
-        it "should return the API error in the second element" do
-          tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE)[1].should =~ /\{\:suite_name\=\>\[\"has already been taken\"\]\}$/
+        it "should return the API error message in the third element" do
+          tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE)[2].should =~ /\{\:suite_name\=\>\[\"has already been taken\"\]\}$/
         end
       end
 
-      it "should return an array with two elements" do
-        tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE).size.should == 2
+      shared_examples_for("returning the HTTP status code") do
+        it "should return the HTTP status code in the second element" do
+          tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE)[1].should == http_status_code
+        end
       end
 
+      it "should return an array with three elements" do
+        tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE).size.should == 3
+      end
+      
       context "where the http request was successful but API status is not 0" do
-        before { stub_http_response(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE, :response => fixture_path("post_suites_201_json_status_1.json")) }
+        before { stub_http_response(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE, :response => fixture_path("post_suites_269_json_status_1.json")) }
         it_should_behave_like("returning that an error occured")
         it_should_behave_like("returning the API error")
 
         it "should return the API error code in the first element" do
           tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE)[0].should == 1
+        end
+
+        it_should_behave_like("returning the HTTP status code") do
+          let(:http_status_code) {269}
         end
       end
 
@@ -154,21 +164,33 @@ describe TddiumClient do
         before { stub_http_response(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE, :status => ["501", "Internal Server Error"]) }
         it_should_behave_like("returning that an error occured")
 
-        it "should return the HTTP error message in the second element" do
-          tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE)[1].should =~ /Internal Server Error/
+        it_should_behave_like("returning the HTTP status code") do
+          let(:http_status_code) {501}
+        end
+
+        it "should return the HTTP error message in the third element" do
+          tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE)[2].should =~ /Internal Server Error/
         end
 
         context "and an API error is returned" do
           before { stub_http_response(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE, :response => fixture_path("post_suites_409.json")) }
           it_should_behave_like("returning the API error")
-          it "should return the HTTP error code in the first element" do
+          it "should return the API error code in the first element" do
             tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE)[0].should == 1
+          end
+
+          it_should_behave_like("returning the HTTP status code") do
+            let(:http_status_code) {409}
           end
         end
 
         context "and no API error is returned" do
-          it "should return the HTTP error code in the first element" do
-            tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE)[0].should == 501
+          it "should return a nil API error code in the first element" do
+            tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE)[0].should be_nil
+          end
+          
+          it_should_behave_like("returning the HTTP status code") do
+            let(:http_status_code) {501}
           end
         end
       end
