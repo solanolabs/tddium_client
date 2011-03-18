@@ -55,12 +55,7 @@ class TddiumClient
   end
 
   def tddium_config
-   unless @tddium_config
-     @tddium_config = YAML.load(
-       File.read(File.join(File.dirname(__FILE__), "..", "config", "environment.yml"))
-     )[environment.to_s]
-   end
+   @tddium_config = YAML.load(File.read(File.join(File.dirname(__FILE__), "..", "config", "environment.yml")))[environment.to_s] unless @tddium_config
    @tddium_config
   end
 end
-
