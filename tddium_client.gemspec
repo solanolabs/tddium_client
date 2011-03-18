@@ -30,4 +30,5 @@ Gem::Specification.new do |s|
   s.add_development_dependency("fakeweb")
   s.add_development_dependency("fakefs")
   s.add_development_dependency("rack-test")
+  s.add_development_dependency("simplecov")
 end
