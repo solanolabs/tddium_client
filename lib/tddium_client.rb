@@ -72,7 +72,7 @@ module TddiumClient
 
       http_message = http.response.header.msg.to_s
 
-      raise ServerError.new(http.code, http_message) if !response.is_a?(Hash)
+      raise ServerError.new(http.code, http_message) unless response.is_a?(Hash) && response.include?("status")
       
       result = Result.new(http.code, http.response.header.msg.to_s, response)
 

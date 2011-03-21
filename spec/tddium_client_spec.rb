@@ -5,10 +5,26 @@ Copyright (c) 2011 Solano Labs All Rights Reserved
 require "spec_helper"
 
 describe TddiumClient::Result do
-  describe "success?" do
+  describe "#success?" do
     context "with successful params" do
       before(:each) do
         @res = TddiumClient::Result.new 200, "OK", {"status" => 0}
+      end
+
+      it "should be true" do
+        @res.should be_success
+      end
+    end
+
+    context "with unsuccessful params" do
+      it "should handle no response" do
+        @res = TddiumClient::Result.new 200, "OK", nil
+        @res.should_not be_success
+      end
+
+      it "should handle 5xx" do
+        @res = TddiumClient::Result.new 501, "Internal Server Error", {"status" => 1}
+        @res.should_not be_success
       end
     end
   end
