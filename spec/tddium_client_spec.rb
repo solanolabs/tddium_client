@@ -65,9 +65,7 @@ describe TddiumClient::Client do
     before(:each) do
       FakeWeb.clean_registry
       stub_tddium_client_config
-      stub_http_response(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE, 
-                         :body => '{"status": 0}',
-                         :status => [200, "OK"])
+      stub_http_response(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE, :response => fixture_path("post_suites_201.json"))
     end
 
     context "('#{EXAMPLE_HTTP_METHOD}', '#{EXAMPLE_TDDIUM_RESOURCE}')" do
