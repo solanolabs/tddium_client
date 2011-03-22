@@ -31,7 +31,7 @@ class TddiumClient
       end
     end
 
-    raise Timeout::Error if tries > retries
+    raise Timeout::Error if tries > retries && retries >= 0
 
     response = JSON.parse(http.body) rescue {}
 
