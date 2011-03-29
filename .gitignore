@@ -6,3 +6,4 @@ nbproject
 *.swp
 coverage/
 .rvmrc
+doc/

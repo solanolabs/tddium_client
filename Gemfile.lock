@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    tddium_client (0.0.4)
+    tddium_client (0.0.5)
       httparty
       json
 

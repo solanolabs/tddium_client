@@ -6,6 +6,23 @@ require "spec_helper"
 
 module TddiumClient
   describe Result do
+    describe "#has_response?" do
+      it "should be true with a reponse" do
+        result = TddiumClient::Result.new 200, "OK", {"status" => 0}
+        result.should be_has_response
+      end
+
+      it "should be false without a response" do
+        result = TddiumClient::Result.new 200, "OK", nil
+        result.should_not be_has_response
+      end
+
+      it "should be false with a nonhash response" do
+        result = TddiumClient::Result.new 200, "OK", "a"
+        result.should_not be_has_response
+      end
+    end
+
     describe "#success?" do
       context "with successful params" do
         it "should be true" do
@@ -25,6 +42,27 @@ module TddiumClient
           result.should_not be_success
         end
       end
+    end
+  end
+
+  describe ServerError do
+    it "should stringify with code and result" do
+      code = 404
+      message = 'Not Found'
+      e = TddiumClient::ServerError.new(code, message)
+      e.message.should =~ /#{code}/
+      e.message.should =~ /#{message}/
+    end
+  end
+
+  describe APIError do
+    it "should stringify with explanation" do
+      obj = {"status" => 1, "explanation"=>"oops"}
+      result = TddiumClient::Result.new(200, "OK", obj)
+      result.should_not be_success
+      e = TddiumClient::APIError.new(result)
+      e.message.should =~ /#{obj["status"]}/
+      e.message.should =~ /#{obj["explanation"]}/
     end
   end
 
@@ -48,14 +86,21 @@ module TddiumClient
 
     let(:tddium_client) { TddiumClient::Client.new }
 
-    it "should set the default environment to :development" do
-      tddium_client.environment.should == :development
-    end
-
     describe "#environment" do
+      before(:each) do
+        stub_tddium_client_config
+      end
+
+      it "should raise on init if environment can't be found" do
+        expect { TddiumClient::Client.new('foobar') }.to raise_error(ArgumentError)
+      end
+
+      it "should set the default environment to :development" do
+        tddium_client.environment.should == 'development'
+      end
       it "should set the environment" do
         tddium_client.environment = :production
-        tddium_client.environment.should == :production
+        tddium_client.environment.should == 'production'
       end
     end
 
