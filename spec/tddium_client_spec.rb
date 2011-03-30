@@ -4,69 +4,184 @@ Copyright (c) 2011 Solano Labs All Rights Reserved
 
 require "spec_helper"
 
-module TddiumClient
-  describe Result do
-    describe "#has_response?" do
-      it "should be true with a reponse" do
-        result = TddiumClient::Result.new 200, "OK", {"status" => 0}
-        result.should be_has_response
+describe "TddiumClient" do
+  let(:http_response) { mock(Net::HTTP).as_null_object }
+
+  def stub_sample_api_response(options = {})
+    options[:status]
+    return_value = ""
+    unless options[:status] == false
+      options[:success] = true unless options[:success] == false
+      return_value = {"status" => options[:success] ? 0 : 1}
+      return_value.merge!(:explanation => options[:explanation] || "User not found") unless options[:success]
+      return_value = return_value.to_json
+    end
+    http_response.stub(:body).and_return(return_value)
+  end
+
+  def stub_http_code(code = "401")
+    http_response.stub(:code).and_return(code)
+  end
+
+  def stub_http_message(message = "Unauthorized")
+    http_response.stub_chain(:response, :header, :msg).and_return(message)
+  end
+
+  describe "Response" do
+
+    shared_examples_for "base" do
+      describe "#http_code" do
+        before {stub_http_code("200")}
+        it "should return the http status code from the response" do
+          base.http_code.should == "200"
+        end
       end
 
-      it "should be false without a response" do
-        result = TddiumClient::Result.new 200, "OK", nil
-        result.should_not be_has_response
+      describe "#http_message" do
+        before {stub_http_message("OK")}
+        it "should return the http message from the response" do
+          base.http_message.should == "OK"
+        end
       end
 
-      it "should be false with a nonhash response" do
-        result = TddiumClient::Result.new 200, "OK", "a"
-        result.should_not be_has_response
+      describe "#http_response" do
+        it "should return the http response" do
+          base.http_response.should == http_response
+        end
       end
     end
 
-    describe "#success?" do
-      context "with successful params" do
-        it "should be true" do
-          result = TddiumClient::Result.new 200, "OK", {"status" => 0}
-          result.should be_success
+    shared_examples_for "api" do
+      it_should_behave_like "base" do
+        let(:base) { TddiumClient::Result::API.new(http_response) }
+      end
+
+      describe "#tddium_response" do
+        it "should return the parsed tddium_response" do
+          stub_sample_api_response
+          api.tddium_response.should == {"status" => 0}
+        end
+      end
+    end
+
+    describe "Base" do
+      it_should_behave_like "base" do
+        let(:base) {TddiumClient::Result::Base.new(http_response)}
+      end
+    end
+
+    describe "API" do
+      it_should_behave_like "api" do
+        let(:api) { TddiumClient::Result::API.new(http_response) }
+      end
+    end
+
+    describe "Client" do
+      let(:client) { TddiumClient::Result::Client.new(http_response) }
+      it_should_behave_like "api" do
+        let(:api) { client }
+      end
+
+      context "no status is included in the response" do
+        before {stub_sample_api_response(:status => false) }
+
+        it "should raise a ServerError" do
+          expect {
+            TddiumClient::Result::Client.new(http_response)
+          }.to raise_error(TddiumClient::Error::Server)
         end
       end
 
-      context "with unsuccessful params" do
-        it "should handle no response" do
-          result = TddiumClient::Result.new 200, "OK", nil
-          result.should_not be_success
-        end
+      context "a status is included in the response but it does not == 0" do
+        before {stub_sample_api_response(:success => false) }
 
-        it "should handle 5xx" do
-          result = TddiumClient::Result.new 501, "Internal Server Error", {"status" => 1}
-          result.should_not be_success
+        it "should raise an APIError" do
+          expect {
+            TddiumClient::Result::Client.new(http_response)
+          }.to raise_error(TddiumClient::Error::API)
+        end
+      end
+
+      context "a status is included in the response and it == 0" do
+        before {stub_sample_api_response }
+        it "should return a new instance of Response::Client" do
+          TddiumClient::Result::Client.new(http_response).should be_a(TddiumClient::Result::Client)
         end
       end
     end
   end
 
-  describe ServerError do
-    it "should stringify with code and result" do
-      code = 404
-      message = 'Not Found'
-      e = TddiumClient::ServerError.new(code, message)
-      e.message.should =~ /#{code}/
-      e.message.should =~ /#{message}/
+  describe "Error" do
+    shared_examples_for "#to_s" do
+      before do
+        stub_http_code("401")
+        stub_http_message("Unauthorized")
+      end
+
+      it "should contain the http code" do
+        result.should include("401")
+      end
+
+      it "should contain the http message" do
+        result.should include("Unauthorized")
+      end
+    end
+
+    describe "Server" do
+      let(:server_error) { TddiumClient::Error::Server.new(http_response) }
+
+      describe "#to_s" do
+        it_should_behave_like("#to_s") do
+          let(:result) {server_error.to_s}
+        end
+      end
+
+      describe "#message" do
+        it_should_behave_like("#to_s") do
+          let(:result) {server_error.message}
+        end
+
+        it "should start with 'Server Error:'" do
+          server_error.message.should =~ /^Server Error:/
+        end
+      end
+    end
+
+    describe "API" do
+      let(:api_error) { TddiumClient::Error::API.new(http_response) }
+
+      describe "#to_s" do
+        it_should_behave_like("#to_s") do
+          let(:result) {api_error.to_s}
+        end
+      end
+
+      describe "#message" do
+        before do
+          stub_sample_api_response(:success => false, :explanation => "User is invalid")
+        end
+
+        it_should_behave_like("#to_s") do
+          let(:result) {api_error.message}
+        end
+
+        it "should start with 'API Error:'" do
+          api_error.message.should =~ /^API Error:/
+        end
+
+        it "should include the api status in brackets ()" do
+          api_error.message.should include("(1)")
+        end
+
+        it "should include the api explanation" do
+          api_error.message.should include("User is invalid")
+        end
+
+      end
     end
   end
 
-  describe APIError do
-    it "should stringify with explanation" do
-      obj = {"status" => 1, "explanation"=>"oops"}
-      result = TddiumClient::Result.new(200, "OK", obj)
-      result.should_not be_success
-      e = TddiumClient::APIError.new(result)
-      e.message.should =~ /#{obj["status"]}/
-      e.message.should =~ /#{obj["explanation"]}/
-    end
-  end
-
-  describe Client do
+  describe "Client" do
     include FakeFS::SpecHelpers
     include TddiumSpecHelpers
 
@@ -105,7 +220,7 @@ module TddiumClient
     end
 
     describe "#call_api" do
-      before(:each) do
+      before do
         FakeWeb.clean_registry
         stub_tddium_client_config
         stub_http_response(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE, :response => fixture_path("post_suites_201.json"))
@@ -130,12 +245,12 @@ module TddiumClient
 
         it "should retry 5 times by default to contact the API" do
           HTTParty.should_receive(EXAMPLE_HTTP_METHOD).exactly(6).times
-          expect { tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE) }.to raise_error(TddiumClient::TimeoutError)
+          expect { tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE) }.to raise_error(TddiumClient::Error::Timeout)
         end
 
         it "should retry as many times as we want to contact the API" do
           HTTParty.should_receive(EXAMPLE_HTTP_METHOD).exactly(3).times
-          expect { tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE, {}, nil, 2) }.to raise_error(TddiumClient::TimeoutError)
+          expect { tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE, {}, nil, 2) }.to raise_error(TddiumClient::Error::Timeout)
         end
       end
 
@@ -177,102 +292,32 @@ module TddiumClient
           tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE, {}, nil) rescue {}
         end
 
-        it "should return a TddiumClient::Result" do
+        it "should return a TddiumClient::Result::Client" do
           result = tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE, {}, nil)
-          result.should be_a(TddiumClient::Result)
+          result.should be_a(TddiumClient::Result::Client)
         end
 
         it "should parse the JSON response" do
           result = tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE, {}, nil)
-          result.http_code.should == 201
-          result.response.should be_a(Hash)
-          result.response["status"].should == 0
-          result.should be_success
-          result.response["suite"]["id"].should == 19
+          result.tddium_response["status"].should == 0
+          result.tddium_response["suite"]["id"].should == 19
         end
       end
 
-      context "exceptions for an unprocessable response" do
+      context "the response has no 'status' in the body" do
         before { stub_http_response(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE, :status => ["501", "Internal Server Error"]) }
-        it "should raise a TddiumClient::ServerError" do
-          expect do
+        it "should raise a TddiumClient::Error::Server" do
+          expect {
             tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE)
-          end.to raise_error do |error|
-            puts error.inspect
-            error.should be_a(TddiumClient::ServerError)
-            error.should respond_to(:http_code)
-            error.http_code.should == 500
-            error.http_message.should =~ /Internal Server Error/
-          end
-        end
-
-        context "when no response is present" do
-          before { stub_http_response(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE, :status => ["200", "OK"]) }
-          it "should raise a TddiumClient::ServerError" do
-            expect do
-              tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE)
-            end.to raise_error do |error|
-              error.should be_a(TddiumClient::ServerError)
-              error.should respond_to(:http_code)
-              error.http_code.should == 200
-              error.http_message.should =~ /OK/
-            end
-          end
-        end
-      end
-
-      shared_examples_for "raising an APIError" do
-        # users can set:
-        #
-        # aproc
-        # http_code
-        # http_message
-        it "should raise the right exception" do
-          expect { aproc.call }.to raise_error do |error|
-            error.should be_a(TddiumClient::APIError)
-            error.should respond_to(:tddium_result)
-            error.tddium_result.should be_a(TddiumClient::Result)
-          end
-        end
-
-        it "should capture the http response line" do
-          expect { aproc.call }.to raise_error do |error|
-            error.tddium_result.http_code.should == http_code if http_code
-            error.tddium_result.http_message.should == http_message if http_message
-          end
+          }.to raise_error(TddiumClient::Error::Server)
         end
       end
 
       context "where the http request was successful but API status is not 0" do
         before { stub_http_response(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE, :response => fixture_path("post_suites_269_json_status_1.json")) }
 
-        it_should_behave_like "raising an APIError" do
-          let(:aproc) { Proc.new { tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE) } }
-          let(:http_code) {269}
-        end
-      end
-
-      context "exceptions for an error response" do
-        before { stub_http_response(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE, :status => ["404", "Not Found"]) }
-        it_should_behave_like "raising an APIError" do
-          let(:aproc) { Proc.new { tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE) } }
-          let(:http_code) {404}
-        end
-
-        context "and an API error is returned" do
-          before { stub_http_response(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE, :response => fixture_path("post_suites_409.json")) }
-          it_should_behave_like "raising an APIError" do
-            let(:aproc) { Proc.new { tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE) } }
-            let(:http_code) {409}
-          end
-
-          it "should have an api status" do
-            expect do
-              tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE)
-            end.to raise_error do |error|
-              error.tddium_result.response[:status].should == 1
-            end
-          end
+        it "should raise a TddiumClient::Error::API Error" do
+          expect { tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE) }.to raise_error(TddiumClient::Error::API)
         end
       end
     end

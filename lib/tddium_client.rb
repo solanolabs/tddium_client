@@ -10,73 +10,78 @@ module TddiumClient
   API_KEY_HEADER = "X-tddium-api-key"
   API_ERROR_TEXT = "An error occured: "
 
-  class Error < RuntimeError; end
-  class TimeoutError < TddiumClient::Error; end
+  module Error
+    class Base < RuntimeError; end
+  end
 
-  class APIError < TddiumClient::Error
-    attr_accessor :tddium_result
+  module Result
+    class Base < Error::Base
+      attr_accessor :http_response
 
-    def initialize(result)
-      self.tddium_result = result
+      def initialize(http_response)
+        self.http_response = http_response
+      end
+
+      def http_code
+        http_response.code
+      end
+
+      def http_message
+        http_response.response.header.msg.to_s
+      end
     end
 
-    def http_code
-      self.tddium_result.http_code if self.tddium_result
+    class API < Base
+      attr_accessor :tddium_response
+
+      def initialize(http_response)
+        super
+        self.tddium_response = JSON.parse(http_response.body) rescue {}
+      end
     end
 
-    def http_result
-      self.tddium_result.http_result if self.tddium_result
-    end
-
-    def to_s
-      "#{http_code} #{http_result} (#{self.tddium_result.status}) #{self.tddium_result.explanation}"
-    end
-
-    def message
-      "API Error: #{to_s}"
+    class Client < API
+      def initialize(http_response)
+        super
+        raise TddiumClient::Error::Server.new(http_response) unless tddium_response.include?("status")
+        raise TddiumClient::Error::API.new(http_response) unless tddium_response["status"] == 0
+      end
     end
   end
 
-  class ServerError < TddiumClient::Error
-    attr_accessor :http_code, :http_result
+  module Error
+    class Timeout < Base; end
 
-    def initialize(http_code, http_result)
-      self.http_code = http_code
-      self.http_result = http_result
+    class Server < TddiumClient::Result::Base
+      def to_s
+        "#{http_code} #{http_message}"
+      end
+
+      def message
+        "Server Error: #{to_s}"
+      end
     end
 
-    def to_s
-      "#{http_code} #{http_result}"
-    end
+    class API < TddiumClient::Result::API
+      def initialize(http_response)
+        super
+      end
 
-    def message
-      "Server Error: #{to_s}"
-    end
-  end
+      def to_s
+        "#{http_code} #{http_message} (#{status}) #{explanation}"
+      end
 
-  class Result
-    attr_accessor :http_code, :http_result, :response
+      def message
+        "API Error: #{to_s}"
+      end
 
-    def initialize(http_code, http_result, response)
-      self.http_code = http_code
-      self.http_result = http_result
-      self.response = response
-    end
+      def explanation
+        tddium_response["explanation"]
+      end
 
-    def success?
-      has_response? && response["status"] == 0
-    end
-
-    def has_response?
-      !response.nil? && response.is_a?(Hash) 
-    end
-
-    def status
-      has_response? ? response["status"] : nil
-    end
-      
-    def explanation
-      has_response? ? response["explanation"] : nil
+      def status
+        tddium_response["status"]
+      end
     end
   end
 
@@ -110,19 +115,9 @@ module TddiumClient
         end
       end
 
-      raise TimeoutError if tries > retries
+      raise Error::Timeout if tries > retries
 
-      response = JSON.parse(http.body) rescue {}
-
-      http_message = http.response.header.msg.to_s
-
-      raise ServerError.new(http.code, http_message) unless response.is_a?(Hash) && response.include?("status")
-      
-      result = Result.new(http.code, http.response.header.msg.to_s, response)
-
-      raise APIError.new(result) if !result.success?
-
-      result
+      Result::Client.new(http)
     end
 
     private
