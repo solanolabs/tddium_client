@@ -115,7 +115,7 @@ module TddiumClient
         end
       end
 
-      raise Error::Timeout if tries > retries
+      raise Error::Timeout if tries > retries && retries >= 0
 
       Result::Client.new(http)
     end
