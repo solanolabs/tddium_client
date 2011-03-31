@@ -31,7 +31,7 @@ module TddiumClient
       end
     end
 
-    class API < Base
+    class Abstract < Base
       attr_accessor :tddium_response
 
       def initialize(http_response)
@@ -44,7 +44,7 @@ module TddiumClient
       end
     end
 
-    class Client < API
+    class API < Abstract
       def initialize(http_response)
         super
         raise TddiumClient::Error::Server.new(http_response) unless tddium_response.include?("status")
@@ -66,7 +66,7 @@ module TddiumClient
       end
     end
 
-    class API < TddiumClient::Result::API
+    class API < TddiumClient::Result::Abstract
       def initialize(http_response)
         super
       end
@@ -121,7 +121,7 @@ module TddiumClient
 
       raise Error::Timeout if tries > retries && retries >= 0
 
-      Result::Client.new(http)
+      Result::API.new(http)
     end
 
     private

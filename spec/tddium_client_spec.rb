@@ -51,7 +51,7 @@ describe "TddiumClient" do
       end
     end
 
-    shared_examples_for "api" do
+    shared_examples_for "abstract" do
       it_should_behave_like "base" do
         let(:base) { TddiumClient::Result::API.new(http_response) }
       end
@@ -60,13 +60,13 @@ describe "TddiumClient" do
 
       describe "#tddium_response" do
         it "should return the parsed tddium_response" do
-          api.tddium_response.should == {"status" => 0}
+          abstract.tddium_response.should == {"status" => 0}
         end
       end
 
       describe "#[]" do
         it "should return the result from the tddium_response" do
-          api["status"].should == 0
+          abstract["status"].should == 0
         end
       end
     end
@@ -77,16 +77,16 @@ describe "TddiumClient" do
       end
     end
 
-    describe "API" do
-      it_should_behave_like "api" do
-        let(:api) { TddiumClient::Result::API.new(http_response) }
+    describe "Abstract" do
+      it_should_behave_like "abstract" do
+        let(:abstract) { TddiumClient::Result::Abstract.new(http_response) }
       end
     end
 
-    describe "Client" do
-      let(:client) { TddiumClient::Result::Client.new(http_response) }
-      it_should_behave_like "api" do
-        let(:api) { client }
+    describe "API" do
+      let(:api) { TddiumClient::Result::API.new(http_response) }
+      it_should_behave_like "abstract" do
+        let(:abstract) { api }
       end
 
       context "no status is included in the response" do
@@ -94,7 +94,7 @@ describe "TddiumClient" do
 
         it "should raise a ServerError" do
           expect {
-            TddiumClient::Result::Client.new(http_response)
+            TddiumClient::Result::API.new(http_response)
           }.to raise_error(TddiumClient::Error::Server)
         end
       end
@@ -104,7 +104,7 @@ describe "TddiumClient" do
 
         it "should raise an APIError" do
           expect {
-            TddiumClient::Result::Client.new(http_response)
+            TddiumClient::Result::API.new(http_response)
           }.to raise_error(TddiumClient::Error::API)
         end
       end
@@ -112,7 +112,7 @@ describe "TddiumClient" do
       context "a status is included in the response and it == 0" do
         before {stub_sample_api_response }
         it "should return a new instance of Response::Client" do
-          TddiumClient::Result::Client.new(http_response).should be_a(TddiumClient::Result::Client)
+          TddiumClient::Result::API.new(http_response).should be_a(TddiumClient::Result::API)
         end
       end
     end
@@ -137,6 +137,10 @@ describe "TddiumClient" do
     describe "Server" do
       let(:server_error) { TddiumClient::Error::Server.new(http_response) }
 
+      it_should_behave_like("base") do
+        let(:base) { server_error }
+      end
+
       describe "#to_s" do
         it_should_behave_like("#to_s") do
           let(:result) {server_error.to_s}
@@ -156,6 +160,10 @@ describe "TddiumClient" do
 
     describe "API" do
       let(:api_error) { TddiumClient::Error::API.new(http_response) }
+
+      it_should_behave_like("abstract") do
+        let(:abstract) { api_error }
+      end
 
       describe "#to_s" do
         it_should_behave_like("#to_s") do
@@ -301,7 +309,7 @@ describe "TddiumClient" do
 
         it "should return a TddiumClient::Result::Client" do
           result = tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE, {}, nil)
-          result.should be_a(TddiumClient::Result::Client)
+          result.should be_a(TddiumClient::Result::API)
         end
 
         it "should parse the JSON response" do
