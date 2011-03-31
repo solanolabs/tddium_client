@@ -38,6 +38,10 @@ module TddiumClient
         super
         self.tddium_response = JSON.parse(http_response.body) rescue {}
       end
+
+      def [](value)
+        tddium_response[value]
+      end
     end
 
     class Client < API

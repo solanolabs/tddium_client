@@ -56,10 +56,17 @@ describe "TddiumClient" do
         let(:base) { TddiumClient::Result::API.new(http_response) }
       end
 
+      before { stub_sample_api_response }
+
       describe "#tddium_response" do
         it "should return the parsed tddium_response" do
-          stub_sample_api_response
           api.tddium_response.should == {"status" => 0}
+        end
+      end
+
+      describe "#[]" do
+        it "should return the result from the tddium_response" do
+          api["status"].should == 0
         end
       end
     end
