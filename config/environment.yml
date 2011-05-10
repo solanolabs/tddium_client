@@ -13,6 +13,12 @@ production:
     host: api.tddium.com
     version: 1
 
+staging:
+  api:
+    scheme: https
+    host: stage-api.tddium.com
+    version: 1
+
 test:
   api:
     scheme: http
