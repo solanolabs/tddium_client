@@ -89,19 +89,12 @@ module TddiumClient
     end
   end
 
-  class Client
-    attr_reader :environment
-
-    def initialize(env = :development)
-      @all_config = YAML.load(File.read(config_path))
-      self.environment = env.to_s
-    end
-
-    def environment=(new_environment)
-      env = new_environment.to_s
-      raise ArgumentError, "Invalid environment #{env}" unless @all_config[env]
-      @tddium_config = @all_config[env]
-      @environment = env
+  class InternalClient
+    def initialize(host, port=nil, scheme='https', version=1)
+      @tddium_config = {"host" => host,
+                        "port" => port,
+                        "scheme" => scheme,
+                        "version" => version}
     end
 
     def call_api(method, api_path, params = {}, api_key = nil, retries = 5)
@@ -124,22 +117,41 @@ module TddiumClient
       Result::API.new(http)
     end
 
-    private
+    protected
 
       def tddium_uri(path)
         uri = URI.parse("")
-        uri.host = tddium_config["api"]["host"]
-        uri.port = tddium_config["api"]["port"]
-        uri.scheme = tddium_config["api"]["scheme"]
-        URI.join(uri.to_s, "#{tddium_config["api"]["version"]}/#{path}").to_s
-      end
-
-      def config_path
-        File.join(File.dirname(__FILE__), "..", "config", "environment.yml")
+        uri.host = tddium_config["host"]
+        uri.port = tddium_config["port"]
+        uri.scheme = tddium_config["scheme"]
+        URI.join(uri.to_s, "#{tddium_config["version"]}/#{path}").to_s
       end
 
       def tddium_config
         @tddium_config
+      end
+  end
+
+
+  class Client < InternalClient
+    attr_reader :environment
+
+    def initialize(env = :development)
+      @all_config = YAML.load(File.read(config_path))
+      self.environment = env.to_s
+    end
+
+    def environment=(new_environment)
+      env = new_environment.to_s
+      raise ArgumentError, "Invalid environment #{env}" unless @all_config[env]
+      @tddium_config = @all_config[env]["api"]
+      @environment = env
+    end
+
+    private
+
+      def config_path
+        File.join(File.dirname(__FILE__), "..", "config", "environment.yml")
       end
   end
 end

@@ -196,6 +196,10 @@ describe "TddiumClient" do
     end
   end
 
+  describe "InternalClient" do
+    pending "implement InternalClient tests"
+  end
+
   describe "Client" do
     include FakeFS::SpecHelpers
     include TddiumSpecHelpers
