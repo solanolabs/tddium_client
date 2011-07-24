@@ -25,3 +25,10 @@ test:
     host: localhost
     port: 3000
     version: 1
+
+mimic:
+  api:
+    scheme: http
+    host: localhost
+    port: 8080
+    version: 1
