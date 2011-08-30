@@ -148,6 +148,14 @@ module TddiumClient
       @environment = env
     end
 
+    def port=(port)
+      @tddium_config["port"] = port
+    end
+
+    def port
+      @tddium_config["port"]
+    end
+
     private
 
       def config_path

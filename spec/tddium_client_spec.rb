@@ -238,6 +238,17 @@ describe "TddiumClient" do
       end
     end
 
+    describe "#port" do
+      before(:each) do
+        stub_tddium_client_config
+      end
+
+      it "should set the port" do
+        tddium_client.port = 2345
+        tddium_client.port.should == 2345
+      end
+    end
+
     describe "#call_api" do
       before do
         FakeWeb.clean_registry
