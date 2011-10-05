@@ -268,11 +268,8 @@ describe "TddiumClient" do
         end
       end
 
-      context "raises a timeout error" do
-        before do
-          HTTParty.stub(EXAMPLE_HTTP_METHOD).and_raise(Timeout::Error)
-        end
-
+      shared_examples_for "retry on exception" do
+        before { HTTParty.stub(EXAMPLE_HTTP_METHOD).and_raise(raised_exception) }
         it "should retry 5 times by default to contact the API" do
           HTTParty.should_receive(EXAMPLE_HTTP_METHOD).exactly(6).times
           expect { tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE) }.to raise_error(TddiumClient::Error::Timeout)
@@ -281,6 +278,18 @@ describe "TddiumClient" do
         it "should retry as many times as we want to contact the API" do
           HTTParty.should_receive(EXAMPLE_HTTP_METHOD).exactly(3).times
           expect { tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE, {}, nil, 2) }.to raise_error(TddiumClient::Error::Timeout)
+        end
+      end
+
+      context "raises a timeout error" do
+        it_behaves_like "retry on exception" do
+          let (:raised_exception) { Timeout::Error }
+        end
+        it_behaves_like "retry on exception" do
+          let (:raised_exception) { OpenSSL::SSL::SSLError }
+        end
+        it_behaves_like "retry on exception" do
+          let (:raised_exception) { OpenSSL::SSL::Session::SessionError }
         end
       end
 

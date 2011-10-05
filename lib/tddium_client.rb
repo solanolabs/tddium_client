@@ -98,21 +98,17 @@ module TddiumClient
     end
 
     def call_api(method, api_path, params = {}, api_key = nil, retries = 5)
-      headers = { API_KEY_HEADER => api_key } if api_key
+      headers = {}
+      headers.merge!(API_KEY_HEADER => api_key) if api_key
 
-      done = false
-      tries = 0
-      while (retries < 0 || tries <= retries) && !done
-        begin
-          http = HTTParty.send(method, tddium_uri(api_path), :body => params, :headers => headers)
-          done = true
-        rescue Timeout::Error
-        ensure
-          tries += 1
-        end
+      begin
+        http = HTTParty.send(method, tddium_uri(api_path), :body => params, :headers => headers)
+      rescue Timeout::Error, OpenSSL::SSL::SSLError, OpenSSL::SSL::Session::SessionError
+        tries += 1
+        retry if retries > 0 && tries <= retries
       end
 
-      raise Error::Timeout if tries > retries && retries >= 0
+      raise Error::Timeout if retries >= 0 && tries > retries
 
       Result::API.new(http)
     end
