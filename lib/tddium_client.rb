@@ -5,6 +5,8 @@ Copyright (c) 2011 Solano Labs All Rights Reserved
 require 'rubygems'
 require 'httparty'
 require 'json'
+require File.expand_path("../tddium_client/version", __FILE__)
+require "tddium_client/version"
 
 module TddiumClient
   API_KEY_HEADER = "X-tddium-api-key"
