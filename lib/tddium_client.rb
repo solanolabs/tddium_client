@@ -8,6 +8,7 @@ require 'json'
 
 module TddiumClient
   API_KEY_HEADER = "X-tddium-api-key"
+  CLIENT_VERSION_HEADER = "X-tddium-client-version"
   API_ERROR_TEXT = "An error occured: "
 
   module Error
@@ -90,16 +91,20 @@ module TddiumClient
   end
 
   class InternalClient
-    def initialize(host, port=nil, scheme='https', version=1)
+    def initialize(host, port=nil, scheme='https', version=1, caller_version=nil)
       @tddium_config = {"host" => host,
                         "port" => port,
                         "scheme" => scheme,
-                        "version" => version}
+                        "version" => version,
+                        "caller_version" => caller_version}
     end
 
     def call_api(method, api_path, params = {}, api_key = nil, retries = 5)
       headers = {}
       headers.merge!(API_KEY_HEADER => api_key) if api_key
+      headers.merge!(CLIENT_VERSION_HEADER => version_header)
+
+      tries = 0
 
       begin
         http = HTTParty.send(method, tddium_uri(api_path), :body => params, :headers => headers)
@@ -113,7 +118,22 @@ module TddiumClient
       Result::API.new(http)
     end
 
+    def caller_version
+      @tddium_config["caller_version"]
+    end
+
+    def caller_version=(version)
+      @tddium_config["caller_version"] = version
+    end
+
+
     protected
+
+      def version_header
+        hdr = "tddium_client-#{TddiumClient::VERSION}"
+        hdr += ";#{caller_version}" if caller_version
+        hdr
+      end
 
       def tddium_uri(path)
         uri = URI.parse("")
@@ -132,9 +152,10 @@ module TddiumClient
   class Client < InternalClient
     attr_reader :environment
 
-    def initialize(env = :development)
+    def initialize(env = :development, caller_version=nil)
       @all_config = YAML.load(File.read(config_path))
       self.environment = env.to_s
+      self.caller_version = caller_version
     end
 
     def environment=(new_environment)

@@ -297,6 +297,7 @@ describe "TddiumClient" do
         it "should include #{TddiumClient::API_KEY_HEADER}=#{EXAMPLE_API_KEY} in the request headers" do
           tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE, {}, EXAMPLE_API_KEY)
           FakeWeb.last_request[TddiumClient::API_KEY_HEADER].should == EXAMPLE_API_KEY
+          FakeWeb.last_request[TddiumClient::CLIENT_VERSION_HEADER].should =~ /#{TddiumClient::VERSION}/
         end
       end
 
@@ -304,6 +305,17 @@ describe "TddiumClient" do
         it "should not include #{TddiumClient::API_KEY_HEADER} in the request headers" do
           tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE, {})
           FakeWeb.last_request[TddiumClient::API_KEY_HEADER].should be_nil
+          FakeWeb.last_request[TddiumClient::CLIENT_VERSION_HEADER].should =~ /#{TddiumClient::VERSION}/
+        end
+      end
+
+      context "('#{EXAMPLE_HTTP_METHOD}', '#{EXAMPLE_TDDIUM_RESOURCE}') # with caller_version" do
+        it "should include #{TddiumClient::CLIENT_VERSION_HEADER} in req headers with caller_version" do
+          ver = "tddium-preview-0.8.1"
+          tddium_client.caller_version = ver
+          tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE, {})
+          FakeWeb.last_request[TddiumClient::API_KEY_HEADER].should be_nil
+          FakeWeb.last_request[TddiumClient::CLIENT_VERSION_HEADER].should =~ /#{TddiumClient::VERSION};#{ver}/
         end
       end
 
