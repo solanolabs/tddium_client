@@ -194,6 +194,19 @@ describe "TddiumClient" do
 
       end
     end
+
+    describe "UpgradeRequired" do
+      before do
+        stub_http_code(426) # Upgrade required
+        stub_sample_api_response(:success => false, :explanation => "You need to upgrade")
+      end
+
+      let (:upgrade_required) { TddiumClient::Error::UpgradeRequired.new(http_response) }
+
+      it "should print the explanation" do
+        upgrade_required.message.should == "API Error: You need to upgrade"
+      end
+    end    
   end
 
   describe "InternalClient" do

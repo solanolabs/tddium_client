@@ -51,6 +51,7 @@ module TddiumClient
       def initialize(http_response)
         super
         raise TddiumClient::Error::Server.new(http_response) unless tddium_response.include?("status")
+        raise TddiumClient::Error::UpgradeRequired.new(http_response) if http_response.code == 426
         raise TddiumClient::Error::API.new(http_response) unless tddium_response["status"] == 0
       end
     end
@@ -88,6 +89,16 @@ module TddiumClient
 
       def status
         tddium_response["status"]
+      end
+    end
+
+    class UpgradeRequired < API
+      def initialize(http_response)
+        super
+      end
+
+      def message
+        "API Error: #{explanation}"
       end
     end
   end
