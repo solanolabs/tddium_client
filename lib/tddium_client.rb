@@ -120,7 +120,7 @@ module TddiumClient
 
       begin
         http = HTTParty.send(method, tddium_uri(api_path), :body => params, :headers => headers)
-      rescue Timeout::Error, OpenSSL::SSL::SSLError, OpenSSL::SSL::Session::SessionError
+      rescue Errno::ETIMEDOUT, Timeout::Error, OpenSSL::SSL::SSLError, OpenSSL::SSL::Session::SessionError
         tries += 1
         retry if retries > 0 && tries <= retries
       end
