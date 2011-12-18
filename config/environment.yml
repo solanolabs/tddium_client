@@ -3,7 +3,7 @@
 development:
   api:
     scheme: http
-    host: localhost
+    host: tddium.lvh.me
     port: 3000
     version: 1
 
@@ -22,7 +22,7 @@ staging:
 test:
   api:
     scheme: http
-    host: localhost
+    host: tddium.lvh.me
     port: 3000
     version: 1
 

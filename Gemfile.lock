@@ -1,8 +1,8 @@
 PATH
   remote: .
   specs:
-    tddium_client (0.1.2)
-      httparty
+    tddium_client (0.1.3)
+      httparty (>= 0.8.1)
       json
 
 GEM
