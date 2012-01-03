@@ -296,6 +296,12 @@ describe "TddiumClient" do
 
       context "raises a timeout error" do
         it_behaves_like "retry on exception" do
+          let (:raised_exception) { Errno::ECONNREFUSED }
+        end
+        it_behaves_like "retry on exception" do
+          let (:raised_exception) { Errno::ETIMEDOUT }
+        end
+        it_behaves_like "retry on exception" do
           let (:raised_exception) { Timeout::Error }
         end
         it_behaves_like "retry on exception" do
