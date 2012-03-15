@@ -19,6 +19,18 @@ staging:
     host: stage-api.tddium.com
     version: 1
 
+sandbox1:
+  api:
+    scheme: https
+    host: sandbox1-api.tddium.com
+    version: 1
+
+sandbox2:
+  api:
+    scheme: https
+    host: sandbox2-api.tddium.com
+    version: 1
+
 test:
   api:
     scheme: http
