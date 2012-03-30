@@ -228,7 +228,8 @@ describe "TddiumClient" do
     end
 
     def parse_request_params
-      Rack::Utils.parse_nested_query(FakeWeb.last_request.body)
+      #Rack::Utils.parse_nested_query(FakeWeb.last_request.body)
+      JSON.parse(FakeWeb.last_request.body)
     end
 
     let(:tddium_client) { TddiumClient::Client.new }
@@ -282,14 +283,14 @@ describe "TddiumClient" do
       end
 
       shared_examples_for "retry on exception" do
-        before { HTTParty.stub(EXAMPLE_HTTP_METHOD).and_raise(raised_exception) }
+        before { TddiumClient::InternalClient.stub(EXAMPLE_HTTP_METHOD).and_raise(raised_exception) }
         it "should retry 5 times by default to contact the API" do
-          HTTParty.should_receive(EXAMPLE_HTTP_METHOD).exactly(6).times
+          TddiumClient::InternalClient.should_receive(EXAMPLE_HTTP_METHOD).exactly(6).times
           expect { tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE) }.to raise_error(TddiumClient::Error::Timeout)
         end
 
         it "should retry as many times as we want to contact the API" do
-          HTTParty.should_receive(EXAMPLE_HTTP_METHOD).exactly(3).times
+          TddiumClient::InternalClient.should_receive(EXAMPLE_HTTP_METHOD).exactly(3).times
           expect { tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE, {}, nil, 2) }.to raise_error(TddiumClient::Error::Timeout)
         end
       end
@@ -358,7 +359,7 @@ describe "TddiumClient" do
         end
 
         it "should try to contact the api only once" do
-          HTTParty.should_receive(EXAMPLE_HTTP_METHOD).exactly(1).times.and_return(mock(HTTParty).as_null_object)
+          TddiumClient::InternalClient.should_receive(EXAMPLE_HTTP_METHOD).exactly(1).times.and_return(mock(HTTParty).as_null_object)
           tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE, {}, nil) rescue {}
         end
 

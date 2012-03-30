@@ -103,6 +103,10 @@ module TddiumClient
   end
 
   class InternalClient
+    include HTTParty
+
+    format :json
+
     def initialize(host, port=nil, scheme='https', version=1, caller_version=nil)
       @tddium_config = {"host" => host,
                         "port" => port,
@@ -112,14 +116,14 @@ module TddiumClient
     end
 
     def call_api(method, api_path, params = {}, api_key = nil, retries = 5)
-      headers = {}
+      headers = {'Content-Type' => 'application/json'}
       headers.merge!(API_KEY_HEADER => api_key) if api_key
       headers.merge!(CLIENT_VERSION_HEADER => version_header)
 
       tries = 0
 
       begin
-        http = HTTParty.send(method, tddium_uri(api_path), :body => params, :headers => headers)
+        http = self.class.send(method, tddium_uri(api_path), :body => params.to_json, :headers => headers)
       rescue Errno::ECONNREFUSED, Errno::ETIMEDOUT, Timeout::Error, OpenSSL::SSL::SSLError, OpenSSL::SSL::Session::SessionError
         tries += 1
         retry if retries > 0 && tries <= retries
