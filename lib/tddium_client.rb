@@ -181,6 +181,10 @@ module TddiumClient
       @environment = env
     end
 
+    def host
+      @tddium_config["host"]
+    end
+
     def port=(port)
       @tddium_config["port"] = port
     end
