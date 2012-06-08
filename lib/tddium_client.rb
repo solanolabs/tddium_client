@@ -1,10 +1,9 @@
-=begin
-Copyright (c) 2011 Solano Labs All Rights Reserved
-=end
+# Copyright (c) 2011, 2012 Solano Labs All Rights Reserved
 
 require 'rubygems'
 require 'httparty'
 require 'json'
+require 'securerandom'
 require File.expand_path("../tddium_client/version", __FILE__)
 
 module TddiumClient
@@ -115,15 +114,18 @@ module TddiumClient
                         "caller_version" => caller_version}
     end
 
-    def call_api(method, api_path, params = {}, api_key = nil, retries = 5)
+    def call_api(method, api_path, params = {}, api_key = nil, retries = 5, xid=nil)
       headers = {'Content-Type' => 'application/json'}
       headers.merge!(API_KEY_HEADER => api_key) if api_key
       headers.merge!(CLIENT_VERSION_HEADER => version_header)
 
+      xid ||= xid_gen
+      call_params = params.merge({:xid => xid})
+
       tries = 0
 
       begin
-        http = self.class.send(method, tddium_uri(api_path), :body => params.to_json, :headers => headers)
+        http = self.class.send(method, tddium_uri(api_path), :body => call_params.to_json, :headers => headers)
       rescue Errno::ECONNREFUSED, Errno::ETIMEDOUT, Timeout::Error, OpenSSL::SSL::SSLError, OpenSSL::SSL::Session::SessionError
         tries += 1
         retry if retries > 0 && tries <= retries
@@ -142,6 +144,9 @@ module TddiumClient
       @tddium_config["caller_version"] = version
     end
 
+    def xid_gen
+      return SecureRandom.hex(8)
+    end
 
     protected
 

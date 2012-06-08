@@ -1,6 +1,4 @@
-=begin
-Copyright (c) 2011 Solano Labs All Rights Reserved
-=end
+# Copyright (c) 2011, 2012 Solano Labs All Rights Reserved
 
 require "spec_helper"
 
@@ -349,7 +347,10 @@ describe "TddiumClient" do
       context "('#{EXAMPLE_HTTP_METHOD}', '#{EXAMPLE_TDDIUM_RESOURCE}') # without params" do
         it "should not include any request params" do
           tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE)
-          parse_request_params.should == {}
+          params = parse_request_params
+	  params.member?('xid').should be_true
+	  params.delete('xid')
+	  params.should == {}
         end
       end
 
