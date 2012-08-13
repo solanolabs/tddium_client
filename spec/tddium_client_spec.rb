@@ -348,9 +348,9 @@ describe "TddiumClient" do
         it "should not include any request params" do
           tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE)
           params = parse_request_params
-	  params.member?('xid').should be_true
-	  params.delete('xid')
-	  params.should == {}
+          params.member?('xid').should be_true
+          params.delete('xid')
+          params.should == {}
         end
       end
 
