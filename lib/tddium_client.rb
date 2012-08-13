@@ -106,7 +106,7 @@ module TddiumClient
 
     format :json
 
-    def initialize(host, port=nil, scheme='https', version=1, caller_version=nil)
+    def initialize(host, port=nil, scheme='https', version=1, caller_version=nil, options={})
       @tddium_config = {"host" => host,
                         "port" => port,
                         "scheme" => scheme,
@@ -128,6 +128,8 @@ module TddiumClient
         http = self.class.send(method, tddium_uri(api_path), :body => call_params.to_json, :headers => headers)
       rescue Errno::ECONNREFUSED, Errno::ETIMEDOUT, Timeout::Error, OpenSSL::SSL::SSLError, OpenSSL::SSL::Session::SessionError
         tries += 1
+        delay = (tries>>1)*0.05*rand()
+        Kernel.sleep(delay)
         retry if retries > 0 && tries <= retries
       end
 
