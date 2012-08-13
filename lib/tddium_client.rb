@@ -1,14 +1,14 @@
 # Copyright (c) 2011, 2012 Solano Labs All Rights Reserved
 
 require 'rubygems'
-require 'httparty'
 require 'json'
+require 'httpclient'
 require 'securerandom'
 require File.expand_path("../tddium_client/version", __FILE__)
 
 module TddiumClient
-  API_KEY_HEADER = "X-tddium-api-key"
-  CLIENT_VERSION_HEADER = "X-tddium-client-version"
+  API_KEY_HEADER = "X-Tddium-Api-Key"
+  CLIENT_VERSION_HEADER = "X-Tddium-Client-Version"
   API_ERROR_TEXT = "An error occured: "
 
   module Error
@@ -28,7 +28,8 @@ module TddiumClient
       end
 
       def http_message
-        http_response.response.header.msg.to_s
+        v = http_response.header.send(:reason_phrase)
+	return v
       end
     end
 
@@ -102,11 +103,10 @@ module TddiumClient
   end
 
   class InternalClient
-    include HTTParty
-
-    format :json
+    attr_reader :client
 
     def initialize(host, port=nil, scheme='https', version=1, caller_version=nil, options={})
+      @client = HTTPClient.new
       @tddium_config = {"host" => host,
                         "port" => port,
                         "scheme" => scheme,
@@ -125,7 +125,7 @@ module TddiumClient
       tries = 0
 
       begin
-        http = self.class.send(method, tddium_uri(api_path), :body => call_params.to_json, :headers => headers)
+        http = @client.send(method, tddium_uri(api_path), :body => call_params.to_json, :header => headers)
       rescue Errno::ECONNREFUSED, Errno::ETIMEDOUT, Timeout::Error, OpenSSL::SSL::SSLError, OpenSSL::SSL::Session::SessionError
         tries += 1
         delay = (tries>>1)*0.05*rand()
@@ -175,10 +175,12 @@ module TddiumClient
   class Client < InternalClient
     attr_reader :environment
 
-    def initialize(env = :development, caller_version=nil)
+    def initialize(env = :development, caller_version=nil, options={})
       @all_config = YAML.load(File.read(config_path))
       self.environment = env.to_s
       self.caller_version = caller_version
+
+      super(host, port, scheme, version, caller_version, options)
     end
 
     def environment=(new_environment)
@@ -198,6 +200,14 @@ module TddiumClient
 
     def port
       @tddium_config["port"]
+    end
+
+    def scheme
+      @tddium_config["scheme"]
+    end
+
+    def version
+      @tddium_config["version"]
     end
 
     private

@@ -22,16 +22,16 @@ describe "TddiumClient" do
   end
 
   def stub_http_message(message = "Unauthorized")
-    http_response.stub_chain(:response, :header, :msg).and_return(message)
+    http_response.stub_chain(:header, :reason_phrase).and_return(message)
   end
 
   describe "Response" do
 
     shared_examples_for "base" do
       describe "#http_code" do
-        before {stub_http_code("200")}
+        before {stub_http_code(200)}
         it "should return the http status code from the response" do
-          base.http_code.should == "200"
+          base.http_code.should == 200
         end
       end
 
@@ -222,12 +222,12 @@ describe "TddiumClient" do
 
     def stub_http_response(method, path, options = {})
       uri = api_uri(path)
-      FakeWeb.register_uri(method, uri, register_uri_options(options))
+      stub_request(method, uri).to_return(options)
     end
 
     def parse_request_params
       #Rack::Utils.parse_nested_query(FakeWeb.last_request.body)
-      JSON.parse(FakeWeb.last_request.body)
+      JSON.parse(WebMock.last_request.body)
     end
 
     let(:tddium_client) { TddiumClient::Client.new }
@@ -263,32 +263,32 @@ describe "TddiumClient" do
 
     describe "#call_api" do
       before do
-        FakeWeb.clean_registry
+        WebMock.reset!
         stub_tddium_client_config
-        stub_http_response(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE, :response => fixture_path("post_suites_201.json"))
+        stub_http_response(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE, fixture_data("post_suites_201.json"))
       end
 
       context "('#{EXAMPLE_HTTP_METHOD}', '#{EXAMPLE_TDDIUM_RESOURCE}')" do
         it "should make a '#{EXAMPLE_HTTP_METHOD.to_s.upcase}' request to the api" do
           tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE)
-          FakeWeb.last_request.method.downcase.to_sym.should == EXAMPLE_HTTP_METHOD
+          WebMock.last_request.method.downcase.to_sym.should == EXAMPLE_HTTP_METHOD
         end
 
         it "should make a request to the correct resource" do
           tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE)
-          FakeWeb.last_request.path.should =~ /#{EXAMPLE_TDDIUM_RESOURCE}$/
+          WebMock.last_request.uri.path.should =~ /#{EXAMPLE_TDDIUM_RESOURCE}$/
         end
       end
 
       shared_examples_for "retry on exception" do
-        before { TddiumClient::InternalClient.stub(EXAMPLE_HTTP_METHOD).and_raise(raised_exception) }
+        before { tddium_client.client.stub(EXAMPLE_HTTP_METHOD).and_raise(raised_exception) }
         it "should retry 5 times by default to contact the API" do
-          TddiumClient::InternalClient.should_receive(EXAMPLE_HTTP_METHOD).exactly(6).times
+          tddium_client.client.should_receive(EXAMPLE_HTTP_METHOD).exactly(6).times
           expect { tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE) }.to raise_error(TddiumClient::Error::Timeout)
         end
 
         it "should retry as many times as we want to contact the API" do
-          TddiumClient::InternalClient.should_receive(EXAMPLE_HTTP_METHOD).exactly(3).times
+          tddium_client.client.should_receive(EXAMPLE_HTTP_METHOD).exactly(3).times
           expect { tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE, {}, nil, 2) }.to raise_error(TddiumClient::Error::Timeout)
         end
       end
@@ -314,16 +314,16 @@ describe "TddiumClient" do
       context "('#{EXAMPLE_HTTP_METHOD}', '#{EXAMPLE_TDDIUM_RESOURCE}', {}, #{EXAMPLE_API_KEY}) # with api_key" do
         it "should include #{TddiumClient::API_KEY_HEADER}=#{EXAMPLE_API_KEY} in the request headers" do
           tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE, {}, EXAMPLE_API_KEY)
-          FakeWeb.last_request[TddiumClient::API_KEY_HEADER].should == EXAMPLE_API_KEY
-          FakeWeb.last_request[TddiumClient::CLIENT_VERSION_HEADER].should =~ /#{TddiumClient::VERSION}/
+          WebMock.last_request.headers[TddiumClient::API_KEY_HEADER].should == EXAMPLE_API_KEY
+          WebMock.last_request.headers[TddiumClient::CLIENT_VERSION_HEADER].should =~ /#{TddiumClient::VERSION}/
         end
       end
 
       context "('#{EXAMPLE_HTTP_METHOD}', '#{EXAMPLE_TDDIUM_RESOURCE}') # without api_key" do
         it "should not include #{TddiumClient::API_KEY_HEADER} in the request headers" do
           tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE, {})
-          FakeWeb.last_request[TddiumClient::API_KEY_HEADER].should be_nil
-          FakeWeb.last_request[TddiumClient::CLIENT_VERSION_HEADER].should =~ /#{TddiumClient::VERSION}/
+          WebMock.last_request.headers[TddiumClient::API_KEY_HEADER].should be_nil
+          WebMock.last_request.headers[TddiumClient::CLIENT_VERSION_HEADER].should =~ /#{TddiumClient::VERSION}/
         end
       end
 
@@ -332,8 +332,8 @@ describe "TddiumClient" do
           ver = "tddium-preview-0.8.1"
           tddium_client.caller_version = ver
           tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE, {})
-          FakeWeb.last_request[TddiumClient::API_KEY_HEADER].should be_nil
-          FakeWeb.last_request[TddiumClient::CLIENT_VERSION_HEADER].should =~ /#{TddiumClient::VERSION};#{ver}/
+          WebMock.last_request.headers[TddiumClient::API_KEY_HEADER].should be_nil
+          WebMock.last_request.headers[TddiumClient::CLIENT_VERSION_HEADER].should =~ /#{TddiumClient::VERSION};#{ver}/
         end
       end
 
@@ -356,11 +356,11 @@ describe "TddiumClient" do
 
       context "results in a successful response" do
         before do
-          stub_http_response(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE, :response => fixture_path("post_suites_201.json"))
+          stub_http_response(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE, fixture_data("post_suites_201.json"))
         end
 
         it "should try to contact the api only once" do
-          TddiumClient::InternalClient.should_receive(EXAMPLE_HTTP_METHOD).exactly(1).times.and_return(mock(HTTParty).as_null_object)
+          tddium_client.client.should_receive(EXAMPLE_HTTP_METHOD).exactly(1).times.and_return(mock(HTTPClient).as_null_object)
           tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE, {}, nil) rescue {}
         end
 
@@ -386,7 +386,7 @@ describe "TddiumClient" do
       end
 
       context "where the http request was successful but API status is not 0" do
-        before { stub_http_response(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE, :response => fixture_path("post_suites_269_json_status_1.json")) }
+        before { stub_http_response(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE, fixture_data("post_suites_269_json_status_1.json")) }
 
         it "should raise a TddiumClient::Error::API Error" do
           expect { tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE) }.to raise_error(TddiumClient::Error::API)
