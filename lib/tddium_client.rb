@@ -2,6 +2,7 @@
 
 require 'rubygems'
 require 'json'
+require 'yaml'
 require 'httpclient'
 require 'securerandom'
 require File.expand_path("../tddium_client/version", __FILE__)
