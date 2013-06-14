@@ -11,8 +11,8 @@ Gem::Specification.new do |s|
   s.version     = TddiumClient::VERSION
   s.platform    = Gem::Platform::RUBY
   s.authors     = ["Jay Moorthi"]
-  s.email       = ["info@tddium.com"]
-  s.homepage    = "http://www.tddium.com/"
+  s.email       = ["info@solanolabs.com"]
+  s.homepage    = "https://www.solanolabs.com/"
   s.summary     = %q{tddium Client Gem}
   s.description = %q{Internal Gem used to call the Tddium API}
   
