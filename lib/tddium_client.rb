@@ -108,6 +108,10 @@ module TddiumClient
 
     def initialize(host, port=nil, scheme='https', version=1, caller_version=nil, options={})
       @client = HTTPClient.new
+      if options[:insecure]
+        @client.ssl_config.verify_mode = OpenSSL::SSL::VERIFY_NONE
+      end
+
       @tddium_config = {"host" => host,
                         "port" => port,
                         "scheme" => scheme,
