@@ -309,6 +309,15 @@ describe "TddiumClient" do
         it_behaves_like "retry on exception" do
           let (:raised_exception) { OpenSSL::SSL::Session::SessionError }
         end
+        it_behaves_like "retry on exception" do
+          let (:raised_exception) { HTTPClient::ReceiveTimeoutError }
+        end
+        it_behaves_like "retry on exception" do
+          let (:raised_exception) { HTTPClient::ConnectTimeoutError }
+        end
+        it_behaves_like "retry on exception" do
+          let (:raised_exception) { HTTPClient::BadResponseError.new(double) }
+        end
       end
 
       context "('#{EXAMPLE_HTTP_METHOD}', '#{EXAMPLE_TDDIUM_RESOURCE}', {}, #{EXAMPLE_API_KEY}) # with api_key" do

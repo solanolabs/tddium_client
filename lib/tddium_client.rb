@@ -131,7 +131,7 @@ module TddiumClient
 
       begin
         http = @client.send(method, tddium_uri(api_path), :body => call_params.to_json, :header => headers)
-      rescue Errno::ECONNREFUSED, Errno::ETIMEDOUT, Timeout::Error, OpenSSL::SSL::SSLError, OpenSSL::SSL::Session::SessionError
+      rescue Errno::ECONNREFUSED, Errno::ETIMEDOUT, Timeout::Error, OpenSSL::SSL::SSLError, OpenSSL::SSL::Session::SessionError, HTTPClient::TimeoutError, HTTPClient::BadResponseError
         tries += 1
         delay = (tries>>1)*0.05*rand()
         Kernel.sleep(delay)
