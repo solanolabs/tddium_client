@@ -10,25 +10,25 @@ development:
 production:
   api:
     scheme: https
-    host: api.tddium.com
+    host: ci.solanolabs.com
     version: 1
 
 staging:
   api:
     scheme: https
-    host: stage-api.tddium.com
+    host: stage-ci.solanolabs.com
     version: 1
 
 sandbox1:
   api:
     scheme: https
-    host: sandbox1-api.tddium.com
+    host: sandbox1-ci.solanolabs.com
     version: 1
 
 sandbox2:
   api:
     scheme: https
-    host: sandbox2-api.tddium.com
+    host: sandbox2-ci.solanolabs.com
     version: 1
 
 test:
