@@ -1,5 +1,5 @@
-# Copyright (c) 2011, 2012, 2013, 2014 Solano Labs All Rights Reserved
+# Copyright (c) 2011, 2012, 2013, 2015 Solano Labs All Rights Reserved
 
 module TddiumClient
-  VERSION = "0.5.0"
+  VERSION = "0.5.1"
 end
