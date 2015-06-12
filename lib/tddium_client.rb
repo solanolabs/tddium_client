@@ -13,6 +13,15 @@ module TddiumClient
   CLIENT_VERSION_HEADER = "X-Tddium-Client-Version"
   API_ERROR_TEXT = "An error occured: "
 
+  ERRORS = [ Errno::ECONNREFUSED,
+             Errno::ETIMEDOUT,
+             Timeout::Error,
+             OpenSSL::SSL::SSLError,
+             OpenSSL::SSL::Session::SessionError,
+             HTTPClient::TimeoutError,
+             HTTPClient::BadResponseError,
+             SocketError ]
+
   module Error
     class Base < RuntimeError; end
   end
@@ -129,10 +138,9 @@ module TddiumClient
       call_params = params.merge({:xid => xid})
 
       tries = 0
-
       begin
         http = @client.send(method, tddium_uri(api_path), :body => call_params.to_json, :header => headers)
-      rescue Errno::ECONNREFUSED, Errno::ETIMEDOUT, Timeout::Error, OpenSSL::SSL::SSLError, OpenSSL::SSL::Session::SessionError, HTTPClient::TimeoutError, HTTPClient::BadResponseError
+      rescue *ERRORS
         tries += 1
         delay = (tries>>1)*0.05*rand()
         Kernel.sleep(delay)

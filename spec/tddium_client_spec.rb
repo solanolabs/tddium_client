@@ -204,7 +204,18 @@ describe "TddiumClient" do
       it "should print the explanation" do
         upgrade_required.message.should == "API Error: You need to upgrade"
       end
-    end    
+    end
+
+    it "should be in list of errors" do
+      TddiumClient::ERRORS.should be == [ Errno::ECONNREFUSED,
+                                          Errno::ETIMEDOUT,
+                                          Timeout::Error,
+                                          OpenSSL::SSL::SSLError,
+                                          OpenSSL::SSL::Session::SessionError,
+                                          HTTPClient::TimeoutError,
+                                          HTTPClient::BadResponseError,
+                                          SocketError ]
+    end
   end
 
   describe "InternalClient" do
