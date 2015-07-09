@@ -16,7 +16,6 @@ module TddiumClient
   ERRORS = [ Errno::ECONNREFUSED,
              Errno::ETIMEDOUT,
              Timeout::Error,
-             OpenSSL::SSL::SSLError,
              OpenSSL::SSL::Session::SessionError,
              HTTPClient::TimeoutError,
              HTTPClient::BadResponseError,
@@ -69,6 +68,16 @@ module TddiumClient
 
   module Error
     class Timeout < Base; end
+
+    class APICert < Base
+      def initialize(err)
+        @err = err
+      end
+
+      def message
+         "API Cert Error: #{@err}"
+      end
+    end
 
     class Server < TddiumClient::Result::Base
       def to_s
@@ -140,6 +149,8 @@ module TddiumClient
       tries = 0
       begin
         http = @client.send(method, tddium_uri(api_path), :body => call_params.to_json, :header => headers)
+      rescue OpenSSL::SSL::SSLError => e
+	raise Error::APICert.new(e)
       rescue *ERRORS
         tries += 1
         delay = (tries>>1)*0.05*rand()

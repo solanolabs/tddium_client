@@ -156,6 +156,16 @@ describe "TddiumClient" do
       end
     end
 
+    describe "APICert" do
+      let(:apicert_error) {TddiumClient::Error::APICert.new("certificate verify failed")}
+
+      describe "#message" do
+        it "should start with 'API Cert Error:' and return err msg" do
+          apicert_error.message.should =~ /^API Cert Error: certificate verify failed/
+        end
+      end
+    end
+
     describe "API" do
       let(:api_error) { TddiumClient::Error::API.new(http_response) }
 
@@ -210,7 +220,6 @@ describe "TddiumClient" do
       TddiumClient::ERRORS.should be == [ Errno::ECONNREFUSED,
                                           Errno::ETIMEDOUT,
                                           Timeout::Error,
-                                          OpenSSL::SSL::SSLError,
                                           OpenSSL::SSL::Session::SessionError,
                                           HTTPClient::TimeoutError,
                                           HTTPClient::BadResponseError,
@@ -315,9 +324,6 @@ describe "TddiumClient" do
           let (:raised_exception) { Timeout::Error }
         end
         it_behaves_like "retry on exception" do
-          let (:raised_exception) { OpenSSL::SSL::SSLError }
-        end
-        it_behaves_like "retry on exception" do
           let (:raised_exception) { OpenSSL::SSL::Session::SessionError }
         end
         it_behaves_like "retry on exception" do
@@ -328,6 +334,13 @@ describe "TddiumClient" do
         end
         it_behaves_like "retry on exception" do
           let (:raised_exception) { HTTPClient::BadResponseError.new(double) }
+        end
+      end
+
+      context "raises API Cert error" do
+        before { tddium_client.client.stub(EXAMPLE_HTTP_METHOD).and_raise(OpenSSL::SSL::SSLError) }
+        it "should raise exception API Cert Error when raised SSLError exception" do
+          expect { tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE) }.to raise_error(TddiumClient::Error::APICert)
         end
       end
 
