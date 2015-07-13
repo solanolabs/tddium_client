@@ -220,6 +220,7 @@ describe "TddiumClient" do
       TddiumClient::ERRORS.should be == [ Errno::ECONNREFUSED,
                                           Errno::ETIMEDOUT,
                                           Timeout::Error,
+                                          OpenSSL::SSL::SSLError,
                                           OpenSSL::SSL::Session::SessionError,
                                           HTTPClient::TimeoutError,
                                           HTTPClient::BadResponseError,
@@ -337,10 +338,17 @@ describe "TddiumClient" do
         end
       end
 
-      context "raises API Cert error" do
+      context "handle general OpenSSL::SSL::SSLError error" do
         before { tddium_client.client.stub(EXAMPLE_HTTP_METHOD).and_raise(OpenSSL::SSL::SSLError) }
-        it "should raise exception API Cert Error when raised SSLError exception" do
-          expect { tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE) }.to raise_error(TddiumClient::Error::APICert)
+        it "should raise exception TddiumClient::Error::Timeout when raised SSLError exception" do
+          expect { tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE) }.to raise_error(TddiumClient::Error::Timeout)
+        end
+      end
+
+      context "handle OpenSSL::SSL::SSLError error with cert and raise API Cert error" do
+        before { tddium_client.client.stub(EXAMPLE_HTTP_METHOD).and_raise(OpenSSL::SSL::SSLError.new("SSL_connect returned=1 errno=0 state=SSLv3 read server certificate B: certificate verify failed")) }
+        it "should raise exception API Cert Error when raised SSLError exception containing 'certificate verify failed'" do
+          expect { tddium_client.call_api(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE) }.to raise_error(TddiumClient::Error::APICert, /certificate verify failed/)
         end
       end
 

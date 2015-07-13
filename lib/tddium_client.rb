@@ -16,6 +16,7 @@ module TddiumClient
   ERRORS = [ Errno::ECONNREFUSED,
              Errno::ETIMEDOUT,
              Timeout::Error,
+             OpenSSL::SSL::SSLError,
              OpenSSL::SSL::Session::SessionError,
              HTTPClient::TimeoutError,
              HTTPClient::BadResponseError,
@@ -149,9 +150,8 @@ module TddiumClient
       tries = 0
       begin
         http = @client.send(method, tddium_uri(api_path), :body => call_params.to_json, :header => headers)
-      rescue OpenSSL::SSL::SSLError => e
-	raise Error::APICert.new(e)
-      rescue *ERRORS
+      rescue *ERRORS => e
+        raise Error::APICert.new(e) if e.message =~ /certificate verify failed/
         tries += 1
         delay = (tries>>1)*0.05*rand()
         Kernel.sleep(delay)
