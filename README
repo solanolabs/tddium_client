@@ -1,1 +1,3 @@
 The tddium_client gem encapsulates common API access code.
+
+use `export SOLANO_CLIENT_DEBUG=true` to view debug
