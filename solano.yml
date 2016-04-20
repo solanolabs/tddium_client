@@ -1,0 +1,19 @@
+ruby_version:
+ SPLIT:
+   - 'ruby-1.9.3-p545'
+   - 'ruby-2.1.5'
+   - 'ruby-2.2.2'
+   - 'ruby-2.3.0'
+coverage:
+  version: 2
+  enabled: true
+bundler_version: 1.10.6
+test_pattern:
+  - spec/**_spec.rb
+cache:
+  per_profile: true
+  key_paths:
+    - Gemfile
+    - Gemfile.lock
+    - tddium_client.gemspec
+    - lib/solano/version.rb
