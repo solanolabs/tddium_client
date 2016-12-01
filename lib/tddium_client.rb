@@ -133,6 +133,10 @@ class InternalClient
       @client.ssl_config.verify_mode = OpenSSL::SSL::VERIFY_NONE
     end
 
+    if options[:receive_timeout] then
+      @client.receive_timeout = options[:receive_timeout].to_i
+    end
+
     @tddium_config = {"host" => host,
                       "port" => port,
                       "scheme" => scheme,
