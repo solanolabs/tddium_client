@@ -137,6 +137,7 @@ class InternalClient
       @client.receive_timeout = options[:receive_timeout].to_i
     end
 
+      
     @tddium_config = {"host" => host,
                       "port" => port,
                       "scheme" => scheme,
