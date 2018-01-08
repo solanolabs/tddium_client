@@ -229,7 +229,32 @@ describe "TddiumClient" do
   end
 
   describe "InternalClient" do
-    pending "implement InternalClient tests"
+    include TddiumSpecHelpers
+
+    def stub_http_response(method, path, options = {})
+      uri = api_uri(path)
+      stub_request(method, uri).to_return(options)
+    end
+
+    before do
+      WebMock.reset!
+      stub_http_response(EXAMPLE_HTTP_METHOD, EXAMPLE_TDDIUM_RESOURCE, fixture_data("post_suites_201.json"))
+    end
+
+    it "should send request cookies when a cookie hash is addisnged during initialization" do
+      internal_client = TddiumClient::InternalClient.new("tddium.lvh.me", 3000, "http", "1", "v1", :cookies => { :setting_custom_cookie => 'true' })
+      internal_client.call_api(:post, 'suites')
+
+      WebMock.last_request.headers['Cookie'].should eq 'setting_custom_cookie=true'
+    end
+
+    it "should send multiple request cookies when a cookie hash is addisnged during initialization" do
+      internal_client = TddiumClient::InternalClient.new("tddium.lvh.me", 3000, "http", "1", "v1", :cookies => { :setting_custom_cookie => 'true', :setting_additional_cookie => 'why_not' })
+      internal_client.call_api(:post, 'suites')
+
+      WebMock.last_request.headers['Cookie'].should include 'setting_custom_cookie=true'
+      WebMock.last_request.headers['Cookie'].should include 'setting_additional_cookie=why_not'
+    end
   end
 
   describe "Client" do

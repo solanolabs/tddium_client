@@ -133,6 +133,20 @@ class InternalClient
       @client.ssl_config.verify_mode = OpenSSL::SSL::VERIFY_NONE
     end
 
+    uri = URI.parse("")
+    uri.host = host
+    uri.port = port
+    uri.scheme = scheme
+
+    options[:cookies].each do |name,value|
+        cookie = WebAgent::Cookie.new
+        cookie.name = name
+        cookie.value = value
+        cookie.url = uri
+
+        @client.cookie_manager.add(cookie)
+    end
+
     if options[:receive_timeout] then
       @client.receive_timeout = options[:receive_timeout].to_i
     end
