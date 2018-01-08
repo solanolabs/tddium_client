@@ -1,4 +1,4 @@
-# Copyright (c) 2011, 2012, 2013, 2014, 2015 Solano Labs All Rights Reserved
+# Copyright (c) 2011-2018 Solano Labs. All Rights Reserved
 
 require 'rubygems'
 require 'json'
@@ -131,6 +131,21 @@ class InternalClient
     @client = HTTPClient.new
     if options[:insecure]
       @client.ssl_config.verify_mode = OpenSSL::SSL::VERIFY_NONE
+    end
+
+    uri = URI.parse("")
+    uri.host = host
+    uri.port = port
+    uri.scheme = scheme
+
+    cookies = options[:cookies] || {}
+    cookies.each_pair do |name, value|
+        cookie = WebAgent::Cookie.new
+        cookie.name = name
+        cookie.value = value
+        cookie.url = uri
+
+        @client.cookie_manager.add(cookie)
     end
 
     if options[:receive_timeout] then
