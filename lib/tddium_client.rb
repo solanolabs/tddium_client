@@ -177,6 +177,7 @@ class InternalClient
         tries += 1
         delay = (tries>>1)*0.05*rand()
         Kernel.sleep(delay)
+        debug_msg({:exception => e, :message => e.message, :backtrace => e.backtrace})
         retry if retries > 0 && tries <= retries
       end
 
