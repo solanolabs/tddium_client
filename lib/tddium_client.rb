@@ -133,6 +133,8 @@ class InternalClient
       @client.ssl_config.verify_mode = OpenSSL::SSL::VERIFY_NONE
     end
 
+    @client.ssl_config.set_trust_ca(File.join(File.dirname(__FILE__), "..", "config", "GE_External_Root_CA_2_1.pem"))
+
     uri = URI.parse("")
     uri.host = host
     uri.port = port
